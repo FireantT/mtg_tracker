@@ -20,7 +20,8 @@
         <h1 class="text-3xl font-bold mb-4 text-center">MTG Card Search</h1>
         <div class="flex justify-center mb-4">
             <input type="text" id="searchInput" placeholder="Enter card name" class="p-4 rounded bg-gray-800 text-white w-1/2" oninput="suggestCards()">
-            <button onclick="searchCards()" class="p-4 rounded bg-blue-600 hover:bg-blue-700 ml-2">Search</button>
+            <button onclick="searchCards()" class="p-4 rounded bg-gradient-to-r from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800 shadow-lg ml-2">Search</button>
+            <button onclick="fetchRandomCard()" class="p-4 rounded bg-gradient-to-r from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800 shadow-lg ml-2">Random Card</button>
             <div id="suggestions" class="absolute bg-gray-800 text-white w-1/2 mt-12 rounded shadow-lg"></div>
             <select id="formatSelect" class="p-4 rounded bg-gray-800 text-white ml-2" onchange="searchCards()">
                 <option value="">All Formats</option>
@@ -43,15 +44,15 @@
         let allCards = [];
 
         async function fetchAllCards() {
-    try {
-        const response = await fetch(`${window.location.origin}/cards/`);
-        if (!response.ok) throw new Error("Failed to fetch cards");
-        const data = await response.json();
-        allCards = data.cards;
-    } catch (error) {
-        console.error("Error fetching all cards:", error);
-    }
-}
+            try {
+                const response = await fetch(`${window.location.origin}/cards/`);
+                if (!response.ok) throw new Error("Failed to fetch cards");
+                const data = await response.json();
+                allCards = data.cards;
+            } catch (error) {
+                console.error("Error fetching all cards:", error);
+            }
+        }
 
         function suggestCards() {
             const query = document.getElementById("searchInput").value.trim().toLowerCase();
@@ -113,6 +114,38 @@
             } catch (error) {
                 console.error("Error fetching cards:", error);
                 alert("Failed to fetch cards. Please try again.");
+            }
+        }
+
+        async function fetchRandomCard() {
+            try {
+                const response = await fetch(`${window.location.origin}/random_card/`);
+                if (!response.ok) throw new Error("Failed to fetch random card");
+                const data = await response.json();
+
+                const resultsDiv = document.getElementById("results");
+                resultsDiv.innerHTML = "";
+
+                const card = data.card;
+                const legalFormats = Object.entries(card.legalities)
+                    .filter(([format, status]) => status === 'legal')
+                    .map(([format]) => format)
+                    .join(', ');
+
+                const cardDiv = document.createElement("div");
+                cardDiv.className = "card bg-gray-800 p-4 rounded shadow fade-in hover:bg-gray-700 transform hover:scale-105 transition-transform duration-300";
+                cardDiv.innerHTML = `
+                    <h2 class="text-xl font-bold mb-2">${card.name}</h2>
+                    ${card.imageUrl ? `<img src="${card.imageUrl}" alt="${card.name}" class="mb-2">` : `<p class="mb-2">No image available</p>`}
+                    <p class="mb-2">${card.type}</p>
+                    <p class="mb-2">Set: ${card.setName}</p>
+                    <p class="mt-2">Price: $${card.price_usd}</p>
+                    <p class="mt-2">Legal in: ${legalFormats || 'None'}</p>
+                `;
+                resultsDiv.appendChild(cardDiv);
+            } catch (error) {
+                console.error("Error fetching random card:", error);
+                alert("Failed to fetch random card. Please try again.");
             }
         }
 

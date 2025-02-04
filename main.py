@@ -36,6 +36,30 @@ def read_root():
     return FileResponse("static/index.html")
 
 
+
+# Get request for a random card
+@app.get("/random_card/")
+async def get_random_card():
+    async with httpx.AsyncClient() as client:
+        try:
+            scryfall_response = await client.get("https://api.scryfall.com/cards/random")
+            scryfall_response.raise_for_status()
+            card = scryfall_response.json()
+
+            card_details = {
+                "name": card.get("name"),
+                "type": card.get("type_line"),
+                "imageUrl": card.get("image_uris", {}).get("normal"),
+                "setName": card.get("set_name"),
+                "price_usd": card.get("prices", {}).get("usd", "N/A"),
+                "legalities": card.get("legalities", {}),
+            }
+
+            return {"card": card_details}
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(status_code=e.response.status_code, detail="Failed to fetch random card from Scryfall API")
+
+
 # Get request for the cards
 @app.get("/cards/")
 async def search_cards(query: str = None, format: str = None):
