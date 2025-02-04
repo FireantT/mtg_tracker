@@ -4,6 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 import httpx
+import socket
 
 # Initialize FastAPI app
 app = FastAPI()
@@ -17,6 +18,17 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+def fetch_ip():
+    try:
+        hostname = socket.gethostname()
+        ip = socket.gethostbyname(hostname)
+        print("IP Address: ", ip)
+        return ip
+    except:
+        ip = "0.0.0.0"
+
 
 # Define a route to serve the index.html file
 @app.get("/")
@@ -70,4 +82,5 @@ async def search_cards(query: str = None, format: str = None):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="172.16.3.105", port=8000)
+    ip = fetch_ip()
+    uvicorn.run(app, host=ip, port=8000)
