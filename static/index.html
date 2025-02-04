@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MTG Card Search</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white font-sans">
+    <div class="container mx-auto p-4">
+        <h1 class="text-3xl font-bold mb-4 text-center">MTG Card Search</h1>
+        <div class="flex justify-center mb-4">
+            <input type="text" id="searchInput" placeholder="Enter card name" class="p-4 rounded bg-gray-800 text-white w-1/2" oninput="suggestCards()">
+            <button onclick="searchCards()" class="p-4 rounded bg-blue-600 hover:bg-blue-700 ml-2">Search</button>
+            <div id="suggestions" class="absolute bg-gray-800 text-white w-1/2 mt-12 rounded shadow-lg"></div>
+            <select id="formatSelect" class="p-4 rounded bg-gray-800 text-white ml-2" onchange="searchCards()">
+                <option value="">All Formats</option>
+                <option value="standard">Standard</option>
+                <option value="modern">Modern</option>
+                <option value="legacy">Legacy</option>
+                <option value="pauper">Pauper</option>
+                <option value="vintage">Vintage</option>
+                <option value="commander">Commander</option>
+                <option value="oathbreaker">Oathbreaker</option>
+                <option value="paupercommander">Pauper Commander</option>
+                <option value="duel">Duel</option>
+                <option value="predh">PreDH</option>
+            </select>
+        </div>
+        <div id="results" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+    </div>
+
+    <script>
+        let allCards = [];
+
+        async function fetchAllCards() {
+            try {
+                const response = await fetch(`http://172.16.3.105:8000/cards/`);
+                if (!response.ok) throw new Error("Failed to fetch cards");
+                const data = await response.json();
+                allCards = data.cards;
+            } catch (error) {
+                console.error("Error fetching all cards:", error);
+            }
+        }
+
+        function suggestCards() {
+            const query = document.getElementById("searchInput").value.trim().toLowerCase();
+            if (!query) {
+                document.getElementById("suggestions").innerHTML = "";
+                return;
+            }
+
+            const suggestions = allCards.filter(card => card.name.toLowerCase().includes(query));
+            const suggestionsDiv = document.getElementById("suggestions");
+            suggestionsDiv.innerHTML = "";
+
+            for (let i = 0; i < Math.min(10, suggestions.length); i++) {
+                const card = suggestions[i];
+                const suggestionDiv = document.createElement("div");
+                suggestionDiv.className = "p-2 cursor-pointer hover:bg-gray-700 fade-in";
+                suggestionDiv.innerText = card.name;
+                suggestionDiv.onclick = () => {
+                    document.getElementById("searchInput").value = card.name;
+                    suggestionsDiv.innerHTML = "";
+                    searchCards();
+                };
+                suggestionsDiv.appendChild(suggestionDiv);
+            }
+        }
+
+        async function searchCards() {
+            const query = document.getElementById("searchInput").value.trim();
+            const selectedFormat = document.getElementById("formatSelect").value;
+
+            if (!query) return;
+
+            try {
+                const response = await fetch(`http://172.16.3.105:8000/cards/?query=${encodeURIComponent(query)}&format=${encodeURIComponent(selectedFormat)}`);
+                if (!response.ok) throw new Error("Failed to fetch cards");
+                const data = await response.json();
+
+                const resultsDiv = document.getElementById("results");
+                resultsDiv.innerHTML = "";
+
+                for (const card of data.cards) {
+                    const legalFormats = Object.entries(card.legalities)
+                        .filter(([format, status]) => status === 'legal')
+                        .map(([format]) => format)
+                        .join(', ');
+
+                    const cardDiv = document.createElement("div");
+                    cardDiv.className = "card bg-gray-800 p-4 rounded shadow fade-in hover:bg-gray-700 transform hover:scale-105 transition-transform duration-300";
+                    cardDiv.innerHTML = `
+                        <h2 class="text-xl font-bold mb-2">${card.name}</h2>
+                        ${card.imageUrl ? `<img src="${card.imageUrl}" alt="${card.name}" class="mb-2">` : `<p class="mb-2">No image available</p>`}
+                        <p class="mb-2">${card.type}</p>
+                        <p class="mb-2">Set: ${card.setName}</p>
+                        <p class="mt-2">Price: $${card.price_usd}</p>
+                        <p class="mt-2">Legal in: ${legalFormats || 'None'}</p>
+                    `;
+                    resultsDiv.appendChild(cardDiv);
+                }
+            } catch (error) {
+                console.error("Error fetching cards:", error);
+                alert("Failed to fetch cards. Please try again.");
+            }
+        }
+
+        fetchAllCards();
+    </script>
+</body>
+</html>
