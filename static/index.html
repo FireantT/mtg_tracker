@@ -32,7 +32,7 @@
     <div class="container mx-auto p-4">
         <h1 class="text-3xl font-bold mb-4 text-center">MTG Card Search</h1>
         <div class="flex flex-col sm:flex-row justify-center mb-4">
-            <input type="text" id="searchInput" placeholder="Enter card name" class="p-4 rounded bg-gray-800 text-white w-full sm:w-1/2 mb-2 sm:mb-0" oninput="suggestCards()">
+            <input type="text" id="searchInput" placeholder="Enter card name" class="p-4 rounded bg-gray-800 text-white w-full sm:w-1/2 mb-2 sm:mb-0" oninput="suggestCards()" onkeypress="handleKeyPress(event)">
             <button onclick="searchCards()" class="p-4 rounded bg-gradient-to-r from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800 shadow-lg ml-0 sm:ml-2 mb-2 sm:mb-0">Search</button>
             <button onclick="fetchRandomCard()" class="p-4 rounded bg-gradient-to-r from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800 shadow-lg ml-0 sm:ml-2">Random Card</button>
             <select id="formatSelect" class="p-4 rounded bg-gray-800 text-white ml-0 sm:ml-2 mt-2 sm:mt-0" onchange="searchCards()">
@@ -65,12 +65,38 @@
 
         async function fetchAllCards() {
             try {
-                const response = await fetch(`${window.location.origin}/cards/`);
+                const response = await fetch(`${window.location.origin}/fetch_all`);
                 if (!response.ok) throw new Error("Failed to fetch cards");
                 const data = await response.json();
                 allCards = data.cards;
+
+                displayCards(allCards);
             } catch (error) {
                 console.error("Error fetching all cards:", error);
+            }
+        }
+
+        function displayCards(cards) {
+            const resultsDiv = document.getElementById("results");
+            resultsDiv.innerHTML = "";
+
+            for (const card of cards) {
+                const legalFormats = Object.entries(card.legalities)
+                    .filter(([format, status]) => status === 'legal')
+                    .map(([format]) => format)
+                    .join(', ');
+
+                const cardDiv = document.createElement("div");
+                cardDiv.className = "card bg-gray-800 p-4 rounded shadow fade-in hover:bg-gray-700 transform hover:scale-105 transition-transform duration-300";
+                cardDiv.innerHTML = `
+                    <h2 class="text-xl font-bold mb-2">${card.name}</h2>
+                    ${card.imageUrl ? `<img src="${card.imageUrl}" alt="${card.name}" class="mb-2">` : `<p class="mb-2">No image available</p>`}
+                    <p class="mb-2">${card.type}</p>
+                    <p class="mb-2">Set: ${card.setName}</p>
+                    <p class="mt-2">Price: $${card.price_usd}</p>
+                    <p class="mt-2">Legal in: ${legalFormats || 'None'}</p>
+                `;
+                resultsDiv.appendChild(cardDiv);
             }
         }
 
@@ -116,11 +142,11 @@
             const selectedFormat = document.getElementById("formatSelect").value;
             const manaQuery = selectedMana.length > 0 ? selectedMana.join(",") : null;
 
-            if (!query) return;
-
             try {
                 const url = new URL(`${window.location.origin}/cards/`);
-                url.searchParams.append("query", query);
+                if (query) {
+                    url.searchParams.append("query", query);
+                }
                 if (selectedFormat) {
                     url.searchParams.append("format", selectedFormat);
                 }
@@ -132,27 +158,7 @@
                 if (!response.ok) throw new Error("Failed to fetch cards");
                 const data = await response.json();
 
-                const resultsDiv = document.getElementById("results");
-                resultsDiv.innerHTML = "";
-
-                for (const card of data.cards) {
-                    const legalFormats = Object.entries(card.legalities)
-                        .filter(([format, status]) => status === 'legal')
-                        .map(([format]) => format)
-                        .join(', ');
-
-                    const cardDiv = document.createElement("div");
-                    cardDiv.className = "card bg-gray-800 p-4 rounded shadow fade-in hover:bg-gray-700 transform hover:scale-105 transition-transform duration-300";
-                    cardDiv.innerHTML = `
-                        <h2 class="text-xl font-bold mb-2">${card.name}</h2>
-                        ${card.imageUrl ? `<img src="${card.imageUrl}" alt="${card.name}" class="mb-2">` : `<p class="mb-2">No image available</p>`}
-                        <p class="mb-2">${card.type}</p>
-                        <p class="mb-2">Set: ${card.setName}</p>
-                        <p class="mt-2">Price: $${card.price_usd}</p>
-                        <p class="mt-2">Legal in: ${legalFormats || 'None'}</p>
-                    `;
-                    resultsDiv.appendChild(cardDiv);
-                }
+                displayCards(data.cards);
             } catch (error) {
                 console.error("Error fetching cards:", error);
                 alert("Failed to fetch cards. Please try again.");
@@ -191,7 +197,13 @@
             }
         }
 
-        fetchAllCards();
+        function handleKeyPress(event) {
+            if (event.key === "Enter") {
+                searchCards();
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", fetchAllCards);
     </script>
 </body>
 </html>

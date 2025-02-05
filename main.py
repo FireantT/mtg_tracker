@@ -1,7 +1,7 @@
 #Imports
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 import httpx
 import socket
@@ -30,42 +30,40 @@ def fetch_ip():
         ip = "0.0.0.0"
 
 
-# Define a route to serve the index.html file
 @app.get("/")
 def read_root():
     return FileResponse("static/index.html")
 
-
-
-# Get request for a random card
-@app.get("/random_card/")
-async def get_random_card():
+#Fetches all cards from the Scryfall API
+@app.get("/fetch_all")
+async def fetch_all():
     async with httpx.AsyncClient() as client:
         try:
-            scryfall_response = await client.get("https://api.scryfall.com/cards/random")
+            scryfall_response = await client.get("https://api.scryfall.com/cards/search?q=order")
+            print(scryfall_response.request.url)
             scryfall_response.raise_for_status()
-            card = scryfall_response.json()
+            print(scryfall_response)
+            scryfall_data = scryfall_response.json()
+            print(scryfall_data)
 
-            card_details = {
-                "name": card.get("name"),
-                "type": card.get("type_line"),
-                "imageUrl": card.get("image_uris", {}).get("normal"),
-                "setName": card.get("set_name"),
-                "price_usd": card.get("prices", {}).get("usd", "N/A"),
-                "legalities": card.get("legalities", {}),
-            }
+            cards_with_details = []
+            for card in scryfall_data.get("data", []):
+                card_details = {
+                    "name": card.get("name"),
+                    "type": card.get("type_line"),
+                    "imageUrl": card.get("image_uris", {}).get("normal"),
+                    "setName": card.get("set_name"),
+                    "price_usd": card.get("prices", {}).get("usd", "N/A"),
+                    "legalities": card.get("legalities", {}),
+                }
+                cards_with_details.append(card_details)
 
-            return {"card": card_details}
+            return {"cards": cards_with_details}
         except httpx.HTTPStatusError as e:
-            raise HTTPException(status_code=e.response.status_code, detail="Failed to fetch random card from Scryfall API")
-
-
-# Get request for the cards
+            raise HTTPException(status_code=e.response.status_code, detail="Failed to fetch cards from Scryfall API")
+        
 @app.get("/cards/")
 async def search_cards(query: str = None, format: str = None, mana: str = None):
-    if not query:
-        raise HTTPException(status_code=400, detail="Query parameter is required")
-
     valid_formats = {"standard", "modern", "legacy", "pauper", "vintage", "commander", "oathbreaker", "paupercommander", "duel", "predh"}
     valid_mana_types = {"red", "black", "blue", "green", "white"}
 
@@ -81,7 +79,7 @@ async def search_cards(query: str = None, format: str = None, mana: str = None):
 
     async with httpx.AsyncClient() as client:
         try:
-            scryfall_query = query
+            scryfall_query = query if query else "order:name"
             if mana_colors:
                 scryfall_query += " " + " ".join([f"color:{color[0].upper()}" for color in mana_colors])
 
