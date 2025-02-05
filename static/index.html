@@ -13,6 +13,19 @@
         .fade-in {
             animation: fadeIn 0.5s ease-in-out;
         }
+        .mana-icon {
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+        .mana-icon:hover {
+            transform: scale(1.1);
+        }
+        .mana-icon.active {
+            border: 2px solid #4a5568;
+            border-radius: 50%;
+        }
     </style>
 </head>
 <body class="bg-gray-900 text-white font-sans">
@@ -36,11 +49,19 @@
                 <option value="predh">PreDH</option>
             </select>
         </div>
+        <div class="flex justify-center mb-4 space-x-2">
+            <img id="redMana" src="https://c2.scryfall.com/file/scryfall-symbols/card-symbols/R.svg" alt="Red" class="mana-icon" onclick="toggleMana('red')">
+            <img id="blackMana" src="https://c2.scryfall.com/file/scryfall-symbols/card-symbols/B.svg" alt="Black" class="mana-icon" onclick="toggleMana('black')">
+            <img id="blueMana" src="https://c2.scryfall.com/file/scryfall-symbols/card-symbols/U.svg" alt="Blue" class="mana-icon" onclick="toggleMana('blue')">
+            <img id="greenMana" src="https://c2.scryfall.com/file/scryfall-symbols/card-symbols/G.svg" alt="Green" class="mana-icon" onclick="toggleMana('green')">
+            <img id="whiteMana" src="https://c2.scryfall.com/file/scryfall-symbols/card-symbols/W.svg" alt="White" class="mana-icon" onclick="toggleMana('white')">
+        </div>
         <div id="results" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
     </div>
 
     <script>
         let allCards = [];
+        let selectedMana = [];
 
         async function fetchAllCards() {
             try {
@@ -78,14 +99,36 @@
             }
         }
 
+        function toggleMana(mana) {
+            const button = document.getElementById(`${mana}Mana`);
+            if (selectedMana.includes(mana)) {
+                selectedMana = selectedMana.filter(m => m !== mana);
+                button.classList.remove('active');
+            } else {
+                selectedMana.push(mana);
+                button.classList.add('active');
+            }
+            searchCards();
+        }
+
         async function searchCards() {
             const query = document.getElementById("searchInput").value.trim();
             const selectedFormat = document.getElementById("formatSelect").value;
+            const manaQuery = selectedMana.length > 0 ? selectedMana.join(",") : null;
 
             if (!query) return;
 
             try {
-                const response = await fetch(`${window.location.origin}/cards/?query=${encodeURIComponent(query)}&format=${encodeURIComponent(selectedFormat)}`);
+                const url = new URL(`${window.location.origin}/cards/`);
+                url.searchParams.append("query", query);
+                if (selectedFormat) {
+                    url.searchParams.append("format", selectedFormat);
+                }
+                if (manaQuery) {
+                    url.searchParams.append("mana", manaQuery);
+                }
+
+                const response = await fetch(url);
                 if (!response.ok) throw new Error("Failed to fetch cards");
                 const data = await response.json();
 

@@ -62,23 +62,28 @@ async def get_random_card():
 
 # Get request for the cards
 @app.get("/cards/")
-async def search_cards(query: str = None, format: str = None):
+async def search_cards(query: str = None, format: str = None, mana: str = None):
     if not query:
         raise HTTPException(status_code=400, detail="Query parameter is required")
 
-
     valid_formats = {"standard", "modern", "legacy", "pauper", "vintage", "commander", "oathbreaker", "paupercommander", "duel", "predh"}
+    valid_mana_types = {"red", "black", "blue", "green", "white"}
 
     if format and format.lower() not in valid_formats:
         raise HTTPException(status_code=400, detail=f"Invalid format parameter. Valid options are: {', '.join(valid_formats)}")
 
+    mana_colors = []
+    if mana:
+        mana_colors = mana.split(',')
+        for color in mana_colors:
+            if color.lower() not in valid_mana_types:
+                raise HTTPException(status_code=400, detail=f"Invalid mana type. Valid options are: {', '.join(valid_mana_types)}")
+
     async with httpx.AsyncClient() as client:
         try:
-            if query.startswith("creature:"):
-                creature_type = query.split(":", 1)[1].strip()
-                scryfall_query = f"type:creature type:{creature_type}"
-            else:
-                scryfall_query = query
+            scryfall_query = query
+            if mana_colors:
+                scryfall_query += " " + " ".join([f"color:{color[0].upper()}" for color in mana_colors])
 
             scryfall_response = await client.get(f"https://api.scryfall.com/cards/search?q={scryfall_query}")
             scryfall_response.raise_for_status()
