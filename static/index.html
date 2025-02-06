@@ -48,13 +48,6 @@
                 <option value="duel">Duel</option>
                 <option value="predh">PreDH</option>
             </select>
-            <select id="raritySelect" class="p-4 rounded bg-gray-800 text-white ml-0 sm:ml-2 mt-2 sm:mt-0" onchange="searchCards()">
-                <option value="">All Rarities</option>
-                <option value="common">Common</option>
-                <option value="uncommon">Uncommon</option>
-                <option value="rare">Rare</option>
-                <option value="mythic">Mythic</option>
-            </select>
         </div>
         <div class="flex justify-center mb-4 space-x-2">
             <img id="redMana" src="https://c2.scryfall.com/file/scryfall-symbols/card-symbols/R.svg" alt="Red" class="mana-icon" onclick="toggleMana('red')">
@@ -147,7 +140,6 @@
         async function searchCards() {
             const query = document.getElementById("searchInput").value.trim();
             const selectedFormat = document.getElementById("formatSelect").value;
-            const selectedRarity = document.getElementById("raritySelect").value;
             const manaQuery = selectedMana.length > 0 ? selectedMana.join(",") : null;
 
             try {
@@ -165,9 +157,6 @@
                     }
                     if (selectedFormat) {
                         url.searchParams.append("format", selectedFormat);
-                    }
-                    if (selectedRarity) {
-                        url.searchParams.append("rarity", selectedRarity);
                     }
                     if (manaQuery) {
                         url.searchParams.append("mana", manaQuery);
