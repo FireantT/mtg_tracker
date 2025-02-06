@@ -143,19 +143,24 @@
             const manaQuery = selectedMana.length > 0 ? selectedMana.join(",") : null;
 
             try {
-                const url = new URL(`${window.location.origin}/cards/`);
-                if (query) {
-                    if (query.toLowerCase().startsWith("creature:")) {
-                        url.searchParams.append("query", query);
-                    } else {
-                        url.searchParams.append("query", `name:${query}`);
+                let url;
+                if (!manaQuery) {
+                    url = new URL(`${window.location.origin}/fetch_all`);
+                } else {
+                    url = new URL(`${window.location.origin}/cards/`);
+                    if (query) {
+                        if (query.toLowerCase().startsWith("creature:")) {
+                            url.searchParams.append("query", query);
+                        } else {
+                            url.searchParams.append("query", `name:${query}`);
+                        }
                     }
-                }
-                if (selectedFormat) {
-                    url.searchParams.append("format", selectedFormat);
-                }
-                if (manaQuery) {
-                    url.searchParams.append("mana", manaQuery);
+                    if (selectedFormat) {
+                        url.searchParams.append("format", selectedFormat);
+                    }
+                    if (manaQuery) {
+                        url.searchParams.append("mana", manaQuery);
+                    }
                 }
 
                 const response = await fetch(url);

@@ -111,7 +111,6 @@ async def search_cards(query: str = None, format: str = None, mana: str = None):
             return {"cards": cards_with_details}
         except httpx.HTTPStatusError as e:
             raise HTTPException(status_code=e.response.status_code, detail="Failed to fetch cards from Scryfall API")
-        
 
 @app.get("/random_card/")
 async def get_random_card():
