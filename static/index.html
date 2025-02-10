@@ -97,7 +97,7 @@
             resultsDiv.innerHTML = "";
 
             for (const card of cards) {
-                console.log(`Card ID: ${card.id}`); // Add this line to debug
+                console.log(`Card ID: ${card.id}`);
 
                 const legalFormats = Object.entries(card.legalities)
                     .filter(([format, status]) => status === 'legal')

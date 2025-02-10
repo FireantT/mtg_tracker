@@ -54,7 +54,7 @@
                     if (!response.ok) {
                         const errorText = await response.text();
                         console.error(`Failed to fetch card details: ${response.status} ${response.statusText} - ${errorText}`);
-                        continue; // Skip this card ID and move to the next one
+                        continue;
                     }
                     const card = await response.json();
 
