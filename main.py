@@ -1,15 +1,21 @@
-#Imports
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Form, Depends, Request, Response
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 import httpx
 import socket
+from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
+import json
 
 # Initialize FastAPI app
 app = FastAPI()
 
+templates = Jinja2Templates(directory="static")
+
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
+
 
 # Add CORS middleware to allow requests from any origin
 app.add_middleware(
@@ -34,21 +40,23 @@ def fetch_ip():
 def read_root():
     return FileResponse("static/index.html")
 
+@app.get("/favorites_page")
+def favorites_page():
+    return FileResponse("static/favorites.html")
+
 #Fetches all cards from the Scryfall API
 @app.get("/fetch_all")
 async def fetch_all():
     async with httpx.AsyncClient() as client:
         try:
             scryfall_response = await client.get("https://api.scryfall.com/cards/search?q=order")
-            print(scryfall_response.request.url)
             scryfall_response.raise_for_status()
-            print(scryfall_response)
             scryfall_data = scryfall_response.json()
-            print(scryfall_data)
 
             cards_with_details = []
             for card in scryfall_data.get("data", []):
                 card_details = {
+                    "id": card.get("id"),  # Include the id property
                     "name": card.get("name"),
                     "type": card.get("type_line"),
                     "imageUrl": card.get("image_uris", {}).get("normal"),
@@ -95,6 +103,7 @@ async def search_cards(query: str = None, format: str = None, mana: str = None):
             cards_with_details = []
             for card in scryfall_data.get("data", []):
                 card_details = {
+                    "id": card.get("id"),  # Include the id property
                     "name": card.get("name"),
                     "type": card.get("type_line"),
                     "imageUrl": card.get("image_uris", {}).get("normal"),
@@ -132,6 +141,32 @@ async def get_random_card():
             return {"card": card_details}
         except httpx.HTTPStatusError as e:
             raise HTTPException(status_code=e.response.status_code, detail="Failed to fetch random card from Scryfall API")
+        
+@app.post("/favorite")
+async def add_favorite(card_id: str, response: Response, request: Request):
+    favorites = request.cookies.get("favorites")
+    print(favorites)
+    if favorites:
+        favorites = json.loads(favorites)
+    else:
+        favorites = []
+
+    if card_id not in favorites:
+        favorites.append(card_id)
+
+    response.set_cookie(key="favorites", value=json.dumps(favorites))
+    return {"message": "Card added to favorites"}
+
+
+@app.get("/favorites")
+async def get_favorites(request: Request):
+    favorites = request.cookies.get("favorites")
+    if favorites:
+        favorites = json.loads(favorites)
+    else:
+        favorites = []
+
+    return {"favorites": favorites}
 
 
 if __name__ == "__main__":

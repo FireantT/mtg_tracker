@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MTG Card Search</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script> <!-- Font Awesome -->
     <style>
         @keyframes fadeIn {
             from { opacity: 0; }
@@ -26,11 +27,23 @@
             border: 2px solid #4a5568;
             border-radius: 50%;
         }
+        .favorite-button {
+            background-color: #6B46C1;
+            color: #000;
+            padding: 0.5rem 1rem;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .favorite-button:hover {
+            background-color: #9F7AEA;
+        }
     </style>
 </head>
 <body class="bg-gray-900 text-white font-sans">
     <div class="container mx-auto p-4">
         <h1 class="text-3xl font-bold mb-4 text-center">MTG Card Search</h1>
+        
         <div class="flex flex-col sm:flex-row justify-center mb-4">
             <input type="text" id="searchInput" placeholder="Enter card name or type (e.g., creature:angel)" class="p-4 rounded bg-gray-800 text-white w-full sm:w-1/2 mb-2 sm:mb-0" oninput="suggestCards()" onkeypress="handleKeyPress(event)">
             <button onclick="searchCards()" class="p-4 rounded bg-gradient-to-r from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800 shadow-lg ml-0 sm:ml-2 mb-2 sm:mb-0">Search</button>
@@ -55,6 +68,9 @@
             <img id="blueMana" src="https://c2.scryfall.com/file/scryfall-symbols/card-symbols/U.svg" alt="Blue" class="mana-icon" onclick="toggleMana('blue')">
             <img id="greenMana" src="https://c2.scryfall.com/file/scryfall-symbols/card-symbols/G.svg" alt="Green" class="mana-icon" onclick="toggleMana('green')">
             <img id="whiteMana" src="https://c2.scryfall.com/file/scryfall-symbols/card-symbols/W.svg" alt="White" class="mana-icon" onclick="toggleMana('white')">
+        </div>
+        <div class="flex justify-end mb-4">
+            <button class="p-4 rounded bg-gradient-to-r from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800 shadow-lg ml-0 sm:ml-2 mb-2 sm:mb-0" onclick="window.location.href='/favorites_page'">Show Favorite Cards</button>
         </div>
         <div id="results" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
     </div>
@@ -81,13 +97,15 @@
             resultsDiv.innerHTML = "";
 
             for (const card of cards) {
+                console.log(`Card ID: ${card.id}`); // Add this line to debug
+
                 const legalFormats = Object.entries(card.legalities)
                     .filter(([format, status]) => status === 'legal')
                     .map(([format]) => format)
                     .join(', ');
 
                 const cardDiv = document.createElement("div");
-                cardDiv.className = "card bg-gray-800 p-4 rounded shadow fade-in hover:bg-gray-700 transform hover:scale-105 transition-transform duration-300";
+                cardDiv.className = "card bg-gray-800 p-4 rounded shadow fade-in hover:bg-gray-700 transform hover:scale-105 transition-transform duration-300 relative";
                 cardDiv.innerHTML = `
                     <h2 class="text-xl font-bold mb-2">${card.name}</h2>
                     ${card.imageUrl ? `<img src="${card.imageUrl}" alt="${card.name}" class="mb-2">` : `<p class="mb-2">No image available</p>`}
@@ -95,6 +113,7 @@
                     <p class="mb-2">Set: ${card.setName}</p>
                     <p class="mt-2">Price: $${card.price_usd}</p>
                     <p class="mt-2">Legal in: ${legalFormats || 'None'}</p>
+                    <button class="favorite-button" onclick="favoriteCard('${card.id}')">Add to Favorites</button>
                 `;
                 resultsDiv.appendChild(cardDiv);
             }
@@ -190,7 +209,7 @@
                     .join(', ');
 
                 const cardDiv = document.createElement("div");
-                cardDiv.className = "card bg-gray-800 p-4 rounded shadow fade-in hover:bg-gray-700 transform hover:scale-105 transition-transform duration-300";
+                cardDiv.className = "card bg-gray-800 p-4 rounded shadow fade-in hover:bg-gray-700 transform hover:scale-105 transition-transform duration-300 relative";
                 cardDiv.innerHTML = `
                     <h2 class="text-xl font-bold mb-2">${card.name}</h2>
                     ${card.imageUrl ? `<img src="${card.imageUrl}" alt="${card.name}" class="mb-2">` : `<p class="mb-2">No image available</p>`}
@@ -198,11 +217,34 @@
                     <p class="mb-2">Set: ${card.setName}</p>
                     <p class="mt-2">Price: $${card.price_usd}</p>
                     <p class="mt-2">Legal in: ${legalFormats || 'None'}</p>
+                    <button class="favorite-button" onclick="favoriteCard('${card.id}')">Add to Favorites</button>
                 `;
                 resultsDiv.appendChild(cardDiv);
             } catch (error) {
                 console.error("Error fetching random card:", error);
                 alert("Failed to fetch random card. Please try again.");
+            }
+        }
+
+        async function favoriteCard(cardId) {
+            try {
+                const response = await fetch(`${window.location.origin}/favorite?card_id=${cardId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Failed to favorite card: ${response.status} ${response.statusText} - ${errorText}`);
+                }
+
+                const data = await response.json();
+                alert(data.message);
+            } catch (error) {
+                console.error("Error favoriting card:", error);
+                alert("Failed to favorite card. Please try again.");
             }
         }
 
