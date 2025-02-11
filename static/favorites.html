@@ -20,6 +20,17 @@
             border-radius: 0.5rem;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
+        .unfavorite-button {
+            background-color: #e53e3e;
+            color: #fff;
+            padding: 0.5rem 1rem;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .unfavorite-button:hover {
+            background-color: #c53030;
+        }
     </style>
 </head>
 <body class="bg-gray-900 text-white font-sans">
@@ -66,11 +77,35 @@
                         <p class="mb-2">${card.type_line}</p>
                         <p class="mb-2">Set: ${card.set_name}</p>
                         <p class="mt-2">Price: $${card.prices.usd || 'N/A'}</p>
+                        <button class="unfavorite-button" onclick="unfavoriteCard('${card.id}')">Unfavorite</button>
                     `;
                     favoritesDiv.appendChild(cardDiv);
                 } catch (error) {
                     console.error("Error fetching card details:", error);
                 }
+            }
+        }
+
+        async function unfavoriteCard(cardId) {
+            try {
+                const response = await fetch(`${window.location.origin}/unfavorite?card_id=${cardId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Failed to unfavorite card: ${response.status} ${response.statusText} - ${errorText}`);
+                }
+
+                const data = await response.json();
+                alert(data.message);
+                fetchFavorites(); 
+            } catch (error) {
+                console.error("Error unfavoriting card:", error);
+                alert("Failed to unfavorite card. Please try again.");
             }
         }
 

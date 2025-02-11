@@ -56,7 +56,7 @@ async def fetch_all():
             cards_with_details = []
             for card in scryfall_data.get("data", []):
                 card_details = {
-                    "id": card.get("id"),  # Include the id property
+                    "id": card.get("id"),  
                     "name": card.get("name"),
                     "type": card.get("type_line"),
                     "imageUrl": card.get("image_uris", {}).get("normal"),
@@ -103,7 +103,7 @@ async def search_cards(query: str = None, format: str = None, mana: str = None):
             cards_with_details = []
             for card in scryfall_data.get("data", []):
                 card_details = {
-                    "id": card.get("id"),  # Include the id property
+                    "id": card.get("id"), 
                     "name": card.get("name"),
                     "type": card.get("type_line"),
                     "imageUrl": card.get("image_uris", {}).get("normal"),
@@ -156,6 +156,21 @@ async def add_favorite(card_id: str, response: Response, request: Request):
 
     response.set_cookie(key="favorites", value=json.dumps(favorites))
     return {"message": "Card added to favorites"}
+
+
+@app.post("/unfavorite")
+async def remove_favorite(card_id: str, response: Response, request: Request):
+    favorites = request.cookies.get("favorites")
+    if favorites:
+        favorites = json.loads(favorites)
+    else:
+        favorites = []
+
+    if card_id in favorites:
+        favorites.remove(card_id)
+
+    response.set_cookie(key="favorites", value=json.dumps(favorites))
+    return {"message": "Card removed from favorites"}
 
 
 @app.get("/favorites")
